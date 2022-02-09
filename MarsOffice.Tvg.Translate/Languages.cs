@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using MarsOffice.Microfunction;
 using Microsoft.AspNetCore.Http;
@@ -24,13 +25,51 @@ namespace MarsOffice.Tvg.Translate
         {
             try
             {
-                var principal = MarsOfficePrincipal.Parse(req);
-                var userId = principal.FindFirst("id").Value;
-
+                await Task.CompletedTask;
                 return new OkObjectResult(new[] { 
                     "ro",
-                    "en"
-                });
+                    "en",
+                    "af",
+                    "sq",
+                    "bg",
+                    "ca",
+                    "zh-Hans",
+                    "hr",
+                    "cs",
+                    "da",
+                    "nl",
+                    "et",
+                    "fi",
+                    "de",
+                    "el",
+                    "he",
+                    "hi",
+                    "hu",
+                    "is",
+                    "id",
+                    "ga",
+                    "it",
+                    "ja",
+                    "ko",
+                    "lv",
+                    "lt",
+                    "mk",
+                    "nb",
+                    "pt",
+                    "pt-pt",
+                    "pl",
+                    "ru",
+                    "sk",
+                    "sl",
+                    "es",
+                    "sv",
+                    "th",
+                    "uk",
+                    "tr",
+                    "vi",
+                    "cy",
+                    "ur"
+                }.Distinct().OrderByDescending(x => x).ToList());
             }
             catch (Exception e)
             {
