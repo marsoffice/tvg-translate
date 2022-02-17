@@ -107,6 +107,7 @@ namespace MarsOffice.Tvg.Translate
                     ToLangCode = request.ToLangCode
                 });
                 await translationResponseQueue.FlushAsync();
+                throw;
             }
         }
     }
