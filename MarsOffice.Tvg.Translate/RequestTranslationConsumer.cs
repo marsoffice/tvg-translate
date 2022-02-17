@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using MarsOffice.Tvg.Translate.Abstractions;
+using Microsoft.Azure.Storage.Queue.Protocol;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Configuration;
@@ -44,10 +45,16 @@ namespace MarsOffice.Tvg.Translate
 
         [FunctionName("RequestTranslationConsumer")]
         public async Task Run(
-            [QueueTrigger("request-translation", Connection = "localsaconnectionstring")] RequestTranslation request,
+            [QueueTrigger("request-translation", Connection = "localsaconnectionstring")] QueueMessage message,
             [Queue("translation-response", Connection = "localsaconnectionstring")] IAsyncCollector<TranslationResponse> translationResponseQueue,
             ILogger log)
         {
+            var request = Newtonsoft.Json.JsonConvert.DeserializeObject<RequestTranslation>(message.Text,
+                    new Newtonsoft.Json.JsonSerializerSettings
+                    {
+                        ContractResolver = new Newtonsoft.Json.Serialization.CamelCasePropertyNamesContractResolver(),
+                        NullValueHandling = Newtonsoft.Json.NullValueHandling.Ignore
+                    });
             try
             {
                 var response = await Policy
@@ -95,18 +102,21 @@ namespace MarsOffice.Tvg.Translate
             catch (Exception e)
             {
                 log.LogError(e, "Function threw an exception");
-                await translationResponseQueue.AddAsync(new TranslationResponse
+                if (message.DequeueCount >= 5)
                 {
-                    Error = e.Message,
-                    Success = false,
-                    VideoId = request.VideoId,
-                    JobId = request.JobId,
-                    UserId = request.UserId,
-                    UserEmail = request.UserEmail,
-                    FromLangCode = request.FromLangCode,
-                    ToLangCode = request.ToLangCode
-                });
-                await translationResponseQueue.FlushAsync();
+                    await translationResponseQueue.AddAsync(new TranslationResponse
+                    {
+                        Error = "TranslateService: " + e.Message,
+                        Success = false,
+                        VideoId = request.VideoId,
+                        JobId = request.JobId,
+                        UserId = request.UserId,
+                        UserEmail = request.UserEmail,
+                        FromLangCode = request.FromLangCode,
+                        ToLangCode = request.ToLangCode
+                    });
+                    await translationResponseQueue.FlushAsync();
+                }
                 throw;
             }
         }
